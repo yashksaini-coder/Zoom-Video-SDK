@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create/Join Zoom Video Session</title>
+    <!-- Zoom Video SDK - Using unpkg CDN for dependencies -->
+    <script crossorigin src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/redux@4/dist/redux.min.js"></script>
+    <script src="https://unpkg.com/redux-thunk@2/dist/redux-thunk.min.js"></script>
+    <script src="https://unpkg.com/lodash@4/lodash.min.js"></script>
+    <!-- Zoom Video SDK - Load from local server first, then fallback to CDN -->
+    <script src="/zoom-sdk/index.umd.js" 
+            onerror="console.warn('Local SDK failed, trying CDN...'); 
+                     var s=document.createElement('script'); 
+                     s.src='https://unpkg.com/@zoom/videosdk@latest/dist/index.umd.js'; 
+                     s.onerror=()=>console.error('All SDK sources failed'); 
+                     s.onload=()=>console.log('SDK loaded from unpkg'); 
+                     document.head.appendChild(s);"
+            onload="console.log('Zoom Video SDK loaded from local server')"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #718096;
+        }
+
+        .form-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #2d3748;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f56565 0%, #c53030 100%);
+        }
+
+        .video-container {
+            background: #1a202c;
+            border-radius: 20px;
+            padding: 20px;
+            margin-top: 20px;
+            min-height: 500px;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .video-container.active {
+            display: block;
+        }
+
+        #video-canvas {
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+            border-radius: 10px;
+            background: #2d3748;
+            object-fit: cover;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .controls button {
+            flex: 1;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+
+        .status.info {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 1px solid #90cdf4;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .help-text {
+            font-size: 0.85rem;
+            color: #718096;
+            margin-top: 5px;
+        }
+
+        .error-text {
+            font-size: 0.85rem;
+            color: #f56565;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+
+        .success-text {
+            font-size: 0.85rem;
+            color: #48bb78;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Home</a>
+
+        <div class="header">
+            <h1>🎥 Create/Join Video Session</h1>
+            <p class="subtitle">Enter your session details to start or join a Zoom Video SDK session</p>
+            <div style="margin-top: 15px; padding: 15px; background: #f0f4ff; border-radius: 8px; font-size: 0.9rem;">
+                <strong>💡 Quick Guide:</strong>
+                <ul style="margin: 10px 0 0 20px; color: #4a5568;">
+                    <li><strong>Session Name:</strong> Any name (e.g., "MySession") - same name = same session</li>
+                    <li><strong>Your Name:</strong> Your display name (e.g., "John Doe")</li>
+                    <li><strong>Session Key:</strong> Any string (e.g., "key-123") - use same key to join same session</li>
+                    <li><strong>Role:</strong> Host (create) or Participant (join)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="form-container" id="formContainer">
+            <form id="sessionForm">
+                <div class="form-group">
+                    <label for="sessionName">Session Name *</label>
+                    <input 
+                        type="text" 
+                        id="sessionName" 
+                        name="sessionName" 
+                        placeholder="e.g., MyVideoSession" 
+                        required
+                        value="TestSession"
+                        pattern="[a-zA-Z0-9_\-]+"
+                        maxlength="200"
+                    >
+                    <p class="help-text" id="sessionNameHelp">A unique name for your video session (letters, numbers, hyphens, underscores only)</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="userIdentity">Your Name *</label>
+                    <input 
+                        type="text" 
+                        id="userIdentity" 
+                        name="userIdentity" 
+                        placeholder="e.g., John Doe" 
+                        required
+                        value="User"
+                        maxlength="100"
+                    >
+                    <p class="help-text" id="userIdentityHelp">Your display name in the session</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="sessionKey">Session Key *</label>
+                    <input 
+                        type="text" 
+                        id="sessionKey" 
+                        name="sessionKey" 
+                        placeholder="e.g., my-secret-key" 
+                        required
+                        value="test-key-123"
+                        maxlength="200"
+                    >
+                    <p class="help-text" id="sessionKeyHelp">A key to identify this session (use same key to join same session)</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="role">Role *</label>
+                    <select id="role" name="role" required>
+                        <option value="0" selected>Participant (Join only)</option>
+                        <option value="1">Host (Can manage session)</option>
+                    </select>
+                    <p class="help-text">Host can manage the session, Participant can only join</p>
+                </div>
+
+                <button type="submit" class="btn" id="joinBtn">Join Session</button>
+            </form>
+
+            <div id="status" class="status" style="display: none;"></div>
+        </div>
+
+        <div class="video-container" id="videoContainer">
+            <div class="video-wrapper">
+                <div id="video-canvas"></div>
+            </div>
+            <div class="controls">
+                <button class="btn btn-danger" id="leaveBtn">Leave Session</button>
+            </div>
+            <div id="sessionStatus" class="status info" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let client;
+        let stream;
+        let isJoined = false;
+        let sdkLoaded = false;
+
+        // Check if SDK is loaded - try multiple possible global names
+        function checkSDKLoaded() {
+            // Check for WebVideoSDK (actual name from UMD build)
+            if (typeof WebVideoSDK !== 'undefined') {
+                // Alias it to ZoomVideo for compatibility
+                if (typeof ZoomVideo === 'undefined') {
+                    window.ZoomVideo = WebVideoSDK;
+                }
+                sdkLoaded = true;
+                return true;
+            }
+            // Check for ZoomVideo (standard name)
+            if (typeof ZoomVideo !== 'undefined') {
+                sdkLoaded = true;
+                return true;
+            }
+            // Check for window.ZoomVideo
+            if (typeof window.ZoomVideo !== 'undefined') {
+                sdkLoaded = true;
+                return true;
+            }
+            // Check other possible names
+            const possibleNames = ['WebVideoSDK', 'ZoomVideo', 'ZoomVideoSDK', 'zmVideo', 'Zoom'];
+            for (const name of possibleNames) {
+                if (typeof window[name] !== 'undefined') {
+                    console.log(`Found Zoom SDK as: ${name}`);
+                    window.ZoomVideo = window[name]; // Alias it
+                    sdkLoaded = true;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Wait for SDK to load
+        function waitForSDK(maxAttempts = 50, attempt = 0) {
+            return new Promise((resolve, reject) => {
+                if (checkSDKLoaded()) {
+                    resolve();
+                } else if (attempt >= maxAttempts) {
+                    reject(new Error('Zoom Video SDK failed to load. Please refresh the page and check your internet connection.'));
+                } else {
+                    setTimeout(() => {
+                        waitForSDK(maxAttempts, attempt + 1).then(resolve).catch(reject);
+                    }, 100);
+                }
+            });
+        }
+
+        // Initialize Zoom Video SDK client
+        function initZoomClient() {
+            if (!checkSDKLoaded()) {
+                showStatus('error', 'Zoom Video SDK is not loaded. Please wait a moment and try again.');
+                return null;
+            }
+
+            try {
+                // Try multiple ways to access the VideoClient
+                let VideoClient = null;
+                
+                // Method 1: WebVideoSDK.default.videoClient (if it exists)
+                if (WebVideoSDK?.default?.videoClient) {
+                    VideoClient = WebVideoSDK.default.videoClient;
+                }
+                // Method 2: WebVideoSDK.default itself might be the client factory
+                else if (WebVideoSDK?.default && typeof WebVideoSDK.default.createClient === 'function') {
+                    VideoClient = WebVideoSDK.default;
+                }
+                // Method 3: WebVideoSDK.videoClient
+                else if (WebVideoSDK?.videoClient) {
+                    VideoClient = WebVideoSDK.videoClient;
+                }
+                // Method 4: ZoomVideo (aliased)
+                else if (ZoomVideo?.default?.videoClient) {
+                    VideoClient = ZoomVideo.default.videoClient;
+                }
+                else if (ZoomVideo?.videoClient) {
+                    VideoClient = ZoomVideo.videoClient;
+                }
+                else if (ZoomVideo && typeof ZoomVideo.createClient === 'function') {
+                    VideoClient = ZoomVideo;
+                }
+                
+                if (!VideoClient || typeof VideoClient.createClient !== 'function') {
+                    console.error('Available SDK structure:', {
+                        WebVideoSDK: typeof WebVideoSDK,
+                        default: typeof WebVideoSDK?.default,
+                        defaultKeys: WebVideoSDK?.default ? Object.keys(WebVideoSDK.default).slice(0, 10) : []
+                    });
+                    throw new Error('VideoClient.createClient not found in SDK');
+                }
+                
+                const zmClient = VideoClient.createClient();
+                zmClient.init('en-US', 'Global', { patchJsMedia: true });
+                return zmClient;
+            } catch (error) {
+                console.error('Error creating Zoom client:', error);
+                showStatus('error', `Failed to create Zoom client: ${error.message}`);
+                return null;
+            }
+        }
+
+        // Check SDK on page load
+        window.addEventListener('load', () => {
+            waitForSDK().then(() => {
+                console.log('Zoom Video SDK loaded successfully');
+                // Hide any loading errors if SDK loads
+                const statusDiv = document.getElementById('status');
+                if (statusDiv.textContent.includes('failed to load')) {
+                    statusDiv.style.display = 'none';
+                }
+            }).catch((error) => {
+                console.error('SDK loading error:', error);
+                showStatus('error', error.message);
+            });
+        });
+
+        // Show status message
+        function showStatus(type, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+        }
+
+        // Hide status message
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+
+        // Show session status
+        function showSessionStatus(message) {
+            const statusDiv = document.getElementById('sessionStatus');
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+        }
+
+        // Generate token from server
+        async function generateToken(sessionName, role, sessionKey, userIdentity) {
+            try {
+                const response = await fetch('/api/generate-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionName,
+                        role: parseInt(role),
+                        sessionKey,
+                        userIdentity
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate token');
+                }
+
+                return data.token;
+            } catch (error) {
+                throw new Error(`Token generation failed: ${error.message}`);
+            }
+        }
+
+        // Join session
+        async function joinSession(sessionName, token, userName, role) {
+            try {
+                showSessionStatus('Connecting to session...');
+                
+                await client.join(sessionName, token, userName);
+                
+                isJoined = true;
+                const roleName = role === '1' ? 'Host' : 'Participant';
+                showSessionStatus(`✅ Successfully joined session as ${roleName}`);
+                
+                // Get media stream
+                stream = client.getMediaStream();
+                
+                // Request camera and microphone permissions
+                try {
+                    // Start video
+                    await stream.startVideo();
+                    console.log('Video started successfully');
+                } catch (videoError) {
+                    console.warn('Video start failed:', videoError);
+                    showSessionStatus('⚠️ Video could not be started. Check camera permissions.');
+                }
+                
+                try {
+                    // Start audio
+                    await stream.startAudio();
+                    console.log('Audio started successfully');
+                } catch (audioError) {
+                    console.warn('Audio start failed:', audioError);
+                    showSessionStatus('⚠️ Audio could not be started. Check microphone permissions.');
+                }
+                
+                // Render video - improved rendering for multiple participants
+                const canvas = document.getElementById('video-canvas');
+                const currentUser = client.getCurrentUserInfo();
+                
+                if (currentUser) {
+                    try {
+                        stream.renderVideo(canvas, currentUser.userId, 1920, 1080, 0, 0, 3);
+                        console.log('Rendered own video');
+                    } catch (renderError) {
+                        console.error('Error rendering own video:', renderError);
+                    }
+                }
+                
+                // Listen for other participants joining
+                client.on('user-added', (payload) => {
+                    console.log('User added:', payload);
+                    const user = Array.isArray(payload) ? payload[0] : payload;
+                    const userName = user.displayName || user.userId || 'Unknown';
+                    showSessionStatus(`👤 ${userName} joined the session`);
+                    
+                    // Render video when peer starts video
+                    setTimeout(() => {
+                        try {
+                            stream.renderVideo(canvas, user.userId, 1920, 1080, 0, 0, 3);
+                        } catch (err) {
+                            console.warn('Could not render peer video:', err);
+                        }
+                    }, 500);
+                });
+
+                client.on('user-removed', (payload) => {
+                    console.log('User removed:', payload);
+                    const user = Array.isArray(payload) ? payload[0] : payload;
+                    const userName = user.displayName || user.userId || 'Unknown';
+                    showSessionStatus(`👤 ${userName} left the session`);
+                });
+
+                // Listen for peer video state changes
+                client.on('peer-video-state-change', (payload) => {
+                    console.log('Peer video state changed:', payload);
+                    if (payload.action === 'Start') {
+                        try {
+                            stream.renderVideo(
+                                canvas,
+                                payload.userId,
+                                1920,
+                                1080,
+                                0,
+                                0,
+                                3
+                            );
+                        } catch (err) {
+                            console.warn('Error rendering peer video:', err);
+                        }
+                    }
+                });
+
+                // Listen for session errors
+                client.on('error', (error) => {
+                    console.error('Session error:', error);
+                    showSessionStatus(`❌ Session error: ${error.reason || error.message || 'Unknown error'}`);
+                });
+
+                // Listen for connection quality changes
+                client.on('connection-change', (payload) => {
+                    console.log('Connection changed:', payload);
+                    if (payload.state === 'Reconnecting') {
+                        showSessionStatus('🔄 Reconnecting to session...');
+                    } else if (payload.state === 'Connected') {
+                        showSessionStatus('✅ Connected to session');
+                    }
+                });
+
+            } catch (error) {
+                console.error('Join session error:', error);
+                
+                // Provide helpful error messages for common authentication errors
+                if (error.type === 'JOIN_MEETING_FAILED') {
+                    if (error.reason && error.reason.includes('account does not exist')) {
+                        throw new Error('Authentication failed: Invalid SDK credentials. Please check your .env file has valid ZOOM_VIDEO_SDK_KEY and ZOOM_VIDEO_SDK_SECRET. Get credentials at: https://developers.zoom.us/docs/video-sdk/get-credentials/');
+                    }
+                    throw new Error(`Failed to join session: ${error.reason || error.message}`);
+                }
+                
+                throw error;
+            }
+        }
+
+        // Leave session
+        async function leaveSession() {
+            try {
+                if (stream) {
+                    await stream.stopVideo();
+                    await stream.stopAudio();
+                }
+                if (client && isJoined) {
+                    await client.leave();
+                }
+                isJoined = false;
+                
+                document.getElementById('videoContainer').classList.remove('active');
+                document.getElementById('formContainer').style.display = 'block';
+                document.getElementById('joinBtn').disabled = false;
+                showStatus('info', 'Left the session successfully');
+            } catch (error) {
+                console.error('Leave session error:', error);
+                showStatus('error', `Error leaving session: ${error.message}`);
+            }
+        }
+
+        // Real-time validation
+        function validateSessionName(value) {
+            const help = document.getElementById('sessionNameHelp');
+            const input = document.getElementById('sessionName');
+            
+            if (!value || value.trim().length === 0) {
+                help.className = 'help-text';
+                help.textContent = 'A unique name for your video session (letters, numbers, hyphens, underscores only)';
+                input.style.borderColor = '';
+                return false;
+            }
+            
+            if (!/^[a-zA-Z0-9_-]+$/.test(value.trim())) {
+                help.className = 'error-text';
+                help.textContent = '❌ Session name can only contain letters, numbers, hyphens, and underscores';
+                input.style.borderColor = '#f56565';
+                return false;
+            }
+            
+            if (value.length > 200) {
+                help.className = 'error-text';
+                help.textContent = '❌ Session name must be 200 characters or less';
+                input.style.borderColor = '#f56565';
+                return false;
+            }
+            
+            help.className = 'success-text';
+            help.textContent = '✅ Session name format is valid';
+            input.style.borderColor = '#48bb78';
+            return true;
+        }
+
+        function validateUserIdentity(value) {
+            const help = document.getElementById('userIdentityHelp');
+            const input = document.getElementById('userIdentity');
+            
+            if (!value || value.trim().length === 0) {
+                help.className = 'help-text';
+                help.textContent = 'Your display name in the session';
+                input.style.borderColor = '';
+                return false;
+            }
+            
+            if (value.length > 100) {
+                help.className = 'error-text';
+                help.textContent = '❌ Name must be 100 characters or less';
+                input.style.borderColor = '#f56565';
+                return false;
+            }
+            
+            help.className = 'success-text';
+            help.textContent = '✅ Name is valid';
+            input.style.borderColor = '#48bb78';
+            return true;
+        }
+
+        function validateSessionKey(value) {
+            const help = document.getElementById('sessionKeyHelp');
+            const input = document.getElementById('sessionKey');
+            
+            if (!value || value.trim().length === 0) {
+                help.className = 'help-text';
+                help.textContent = 'A key to identify this session (use same key to join same session)';
+                input.style.borderColor = '';
+                return false;
+            }
+            
+            if (value.length > 200) {
+                help.className = 'error-text';
+                help.textContent = '❌ Session key must be 200 characters or less';
+                input.style.borderColor = '#f56565';
+                return false;
+            }
+            
+            help.className = 'success-text';
+            help.textContent = '✅ Session key is valid';
+            input.style.borderColor = '#48bb78';
+            return true;
+        }
+
+        // Add real-time validation listeners
+        document.getElementById('sessionName').addEventListener('input', (e) => {
+            validateSessionName(e.target.value);
+        });
+
+        document.getElementById('userIdentity').addEventListener('input', (e) => {
+            validateUserIdentity(e.target.value);
+        });
+
+        document.getElementById('sessionKey').addEventListener('input', (e) => {
+            validateSessionKey(e.target.value);
+        });
+
+        // Form submission handler
+        document.getElementById('sessionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const sessionName = document.getElementById('sessionName').value.trim();
+            const userIdentity = document.getElementById('userIdentity').value.trim();
+            const sessionKey = document.getElementById('sessionKey').value.trim();
+            const role = document.getElementById('role').value;
+
+            // Validate all fields
+            const nameValid = validateSessionName(sessionName);
+            const identityValid = validateUserIdentity(userIdentity);
+            const keyValid = validateSessionKey(sessionKey);
+
+            if (!nameValid || !identityValid || !keyValid) {
+                showStatus('error', 'Please fix the validation errors above before joining');
+                return;
+            }
+
+            // Optional: Validate with server
+            try {
+                const validationResponse = await fetch('/api/validate-session-inputs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionName,
+                        userIdentity,
+                        sessionKey,
+                        role
+                    })
+                });
+
+                const validationData = await validationResponse.json();
+                if (!validationData.valid) {
+                    showStatus('error', validationData.errors.join(', '));
+                    return;
+                }
+            } catch (error) {
+                console.warn('Server validation failed, proceeding with client-side validation:', error);
+            }
+
+            hideStatus();
+            document.getElementById('joinBtn').disabled = true;
+            document.getElementById('joinBtn').textContent = 'Connecting...';
+
+            try {
+                // Wait for SDK to be loaded
+                showStatus('info', 'Loading Zoom Video SDK...');
+                await waitForSDK();
+
+                // Initialize client
+                client = initZoomClient();
+                if (!client) {
+                    throw new Error('Failed to initialize Zoom Video SDK client');
+                }
+
+                // Generate token
+                showStatus('info', 'Generating authentication token...');
+                const token = await generateToken(sessionName, role, sessionKey, userIdentity);
+
+                // Join session
+                showStatus('info', 'Joining session...');
+                await joinSession(sessionName, token, userIdentity, role);
+
+                // Show video container
+                document.getElementById('videoContainer').classList.add('active');
+                document.getElementById('formContainer').style.display = 'none';
+                hideStatus();
+
+            } catch (error) {
+                console.error('Error:', error);
+                
+                // Show user-friendly error message
+                let errorMessage = error.message || 'An unknown error occurred';
+                
+                // Add troubleshooting link for authentication errors
+                if (errorMessage.includes('Authentication failed') || errorMessage.includes('account does not exist')) {
+                    errorMessage += '\n\n💡 Tip: Visit http://localhost:3000/setup-credentials.html to validate your credentials';
+                }
+                
+                showStatus('error', errorMessage);
+                document.getElementById('joinBtn').disabled = false;
+                document.getElementById('joinBtn').textContent = 'Join Session';
+            }
+        });
+
+        // Leave button handler
+        document.getElementById('leaveBtn').addEventListener('click', leaveSession);
+    </script>
+</body>
+</html>
+

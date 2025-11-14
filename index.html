@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoom Video SDK - Express Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+
+        .info-box {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+        }
+
+        .info-box h2 {
+            color: #2d3748;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .info-box p {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: #4a5568;
+            line-height: 1.8;
+        }
+
+        .btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-align: center;
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .link {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎥 Zoom Video SDK</h1>
+        <p class="subtitle">Express Server for Video Conferencing</p>
+
+        <div class="info-box">
+            <h2>📋 Setup Instructions</h2>
+            <p><strong>1. Get Your Credentials:</strong></p>
+            <ul>
+                <li>Visit <a href="https://developers.zoom.us/docs/video-sdk/get-credentials/" target="_blank" class="link">Zoom Video SDK Credentials</a></li>
+                <li>Create a Video SDK app in the Zoom Marketplace</li>
+                <li>Copy your SDK Key and Secret</li>
+            </ul>
+            <p><strong>2. Configure Environment:</strong></p>
+            <ul>
+                <li>Copy <code>.env.example</code> to <code>.env</code></li>
+                <li>Add your <code>ZOOM_VIDEO_SDK_KEY</code> and <code>ZOOM_VIDEO_SDK_SECRET</code></li>
+            </ul>
+            <p><strong>3. Start Creating Sessions:</strong></p>
+            <ul>
+                <li>Click the button below to create or join a video session</li>
+            </ul>
+        </div>
+
+        <div style="display: flex; gap: 15px; flex-direction: column;">
+            <a href="setup-credentials.html" class="btn" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
+                🔑 Setup/Validate Credentials
+            </a>
+            <a href="create-session.html" class="btn">Create/Join Video Session</a>
+        </div>
+
+        <div id="status" class="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Check server health
+        fetch('/api/health')
+            .then(res => res.json())
+            .then(data => {
+                const statusDiv = document.getElementById('status');
+                statusDiv.style.display = 'block';
+                
+                if (data.sdkConfigured) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ Server is running and SDK is configured!';
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '⚠️ Server is running but SDK credentials are not configured. Please check your .env file.';
+                }
+            })
+            .catch(err => {
+                const statusDiv = document.getElementById('status');
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Unable to connect to server. Make sure the server is running.';
+            });
+    </script>
+</body>
+</html>
+
