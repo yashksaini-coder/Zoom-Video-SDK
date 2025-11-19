@@ -3,7 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zoom Video SDK - Express Server</title>
+    <title>Zoom Video SDK - Session & Transcription</title>
+    
+    <!-- Zoom Video SDK Dependencies -->
+    <script crossorigin src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/redux@4/dist/redux.min.js"></script>
+    <script src="https://unpkg.com/redux-thunk@2/dist/redux-thunk.min.js"></script>
+    <script src="https://unpkg.com/lodash@4/lodash.min.js"></script>
+    
+    <!-- Zoom Video SDK -->
+    <script src="/zoom-sdk/index.umd.js" 
+            onerror="console.warn('Local SDK failed, trying CDN...'); 
+                     var s=document.createElement('script'); 
+                     s.src='https://unpkg.com/@zoom/videosdk@latest/dist/index.umd.js'; 
+                     s.onerror=()=>console.error('All SDK sources failed'); 
+                     s.onload=()=>console.log('SDK loaded from unpkg'); 
+                     document.head.appendChild(s);"
+            onload="console.log('Zoom Video SDK loaded from local server')"></script>
+    
+    <!-- Application Scripts -->
+    <script src="/app.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -15,19 +36,21 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             padding: 20px;
+            color: #2d3748;
         }
 
         .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
             background: white;
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 40px;
-            max-width: 600px;
-            width: 100%;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
 
         h1 {
@@ -38,69 +61,105 @@
 
         .subtitle {
             color: #718096;
-            margin-bottom: 30px;
             font-size: 1rem;
         }
 
-        .info-box {
-            background: #f7fafc;
-            border-left: 4px solid #667eea;
-            padding: 20px;
-            margin-bottom: 30px;
-            border-radius: 8px;
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
         }
 
-        .info-box h2 {
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel h2 {
             color: #2d3748;
-            font-size: 1.2rem;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
         }
 
-        .info-box p {
-            color: #4a5568;
-            line-height: 1.6;
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #2d3748;
+            font-weight: 600;
             margin-bottom: 8px;
+            font-size: 0.9rem;
         }
 
-        .info-box ul {
-            margin-left: 20px;
-            color: #4a5568;
-            line-height: 1.8;
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
         }
 
         .btn {
-            display: inline-block;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 15px 30px;
-            text-decoration: none;
+            border: none;
             border-radius: 8px;
             font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-            text-align: center;
-            width: 100%;
             font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-top: 10px;
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .link {
-            color: #667eea;
-            text-decoration: none;
+        .btn:active {
+            transform: translateY(0);
         }
 
-        .link:hover {
-            text-decoration: underline;
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
         }
 
         .status {
-            margin-top: 20px;
             padding: 15px;
             border-radius: 8px;
-            font-size: 0.9rem;
+            margin-bottom: 20px;
+            display: none;
         }
 
         .status.success {
@@ -114,65 +173,485 @@
             color: #742a2a;
             border: 1px solid #fc8181;
         }
+
+        .status.info {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 1px solid #90cdf4;
+        }
+
+        .video-container {
+            width: 100%;
+            height: 400px;
+            background: #1a202c;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        #video-canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .transcription-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 15px;
+            background: #f7fafc;
+        }
+
+        .transcription-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: white;
+            border-left: 4px solid #667eea;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .transcription-item.interim {
+            opacity: 0.7;
+            border-left-color: #cbd5e0;
+        }
+
+        .transcription-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .transcription-user {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .transcription-time {
+            font-size: 0.8rem;
+            color: #718096;
+        }
+
+        .transcription-text {
+            color: #2d3748;
+            line-height: 1.5;
+        }
+
+        .transcription-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .transcription-controls .btn {
+            margin: 0;
+            flex: 1;
+        }
+
+        .speech-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #cbd5e0;
+            margin-right: 8px;
+            animation: pulse 1.5s infinite;
+        }
+
+        .speech-indicator.active {
+            background: #48bb78;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .session-info {
+            background: #edf2f7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .session-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .session-info-label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .session-info-value {
+            color: #2d3748;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎥 Zoom Video SDK</h1>
-        <p class="subtitle">Express Server for Video Conferencing</p>
-
-        <div class="info-box">
-            <h2>📋 Setup Instructions</h2>
-            <p><strong>1. Get Your Credentials:</strong></p>
-            <ul>
-                <li>Visit <a href="https://developers.zoom.us/docs/video-sdk/get-credentials/" target="_blank" class="link">Zoom Video SDK Credentials</a></li>
-                <li>Create a Video SDK app in the Zoom Marketplace</li>
-                <li>Copy your SDK Key and Secret</li>
-            </ul>
-            <p><strong>2. Configure Environment:</strong></p>
-            <ul>
-                <li>Copy <code>.env.example</code> to <code>.env</code></li>
-                <li>Add your <code>ZOOM_VIDEO_SDK_KEY</code> and <code>ZOOM_VIDEO_SDK_SECRET</code></li>
-            </ul>
-            <p><strong>3. Start Creating Sessions:</strong></p>
-            <ul>
-                <li>Click the button below to create or join a video session</li>
-            </ul>
+        <div class="header">
+            <h1>🎥 Zoom Video SDK - Session & Transcription</h1>
+            <p class="subtitle">Create sessions, capture audio, and get real-time transcriptions with speech detection</p>
         </div>
 
-        <div style="display: flex; gap: 15px; flex-direction: column;">
-            <a href="setup-credentials.html" class="btn" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
-                🔑 Setup/Validate Credentials
-            </a>
-            <a href="create-session.html" class="btn">Create/Join Video Session</a>
-        </div>
+        <div id="status" class="status"></div>
 
-        <div id="status" class="status" style="display: none;"></div>
+        <div class="main-content">
+            <!-- Session Panel -->
+            <div class="panel">
+                <h2>📹 Video Session</h2>
+                
+                <div id="sessionInfo" class="session-info" style="display: none;">
+                    <div class="session-info-item">
+                        <span class="session-info-label">Session:</span>
+                        <span class="session-info-value" id="displaySessionName">-</span>
+                    </div>
+                    <div class="session-info-item">
+                        <span class="session-info-label">User:</span>
+                        <span class="session-info-value" id="displayUserName">-</span>
+                    </div>
+                    <div class="session-info-item">
+                        <span class="session-info-label">Role:</span>
+                        <span class="session-info-value" id="displayUserRole">-</span>
+                    </div>
+                    <div class="session-info-item">
+                        <span class="session-info-label">Status:</span>
+                        <span class="session-info-value" id="displaySessionStatus">Not connected</span>
+                    </div>
+                </div>
+
+                <form id="sessionForm">
+                    <div class="form-group">
+                        <label for="sessionName">Session Name *</label>
+                        <input type="text" id="sessionName" name="sessionName" 
+                               placeholder="e.g., TeamMeeting-2024" required
+                               pattern="[a-zA-Z0-9_\-]+" maxlength="200">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="userIdentity">Your Name *</label>
+                        <input type="text" id="userIdentity" name="userIdentity" 
+                               placeholder="e.g., John Doe" required maxlength="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sessionKey">Session Key *</label>
+                        <input type="text" id="sessionKey" name="sessionKey" 
+                               placeholder="e.g., secure-key-123" required maxlength="200">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role">Role *</label>
+                        <select id="role" name="role" required>
+                            <option value="1">Host (Can manage session)</option>
+                            <option value="0">Participant (Join only)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="joinBtn" class="btn btn-success">
+                        ➕ Create & Join Session
+                    </button>
+                    <button type="button" id="leaveBtn" class="btn btn-danger" style="display: none;">
+                        🚪 Leave Session
+                    </button>
+                </form>
+
+                <div class="video-container">
+                    <video id="video-canvas" autoplay playsinline></video>
+                </div>
+            </div>
+
+            <!-- Transcription Panel -->
+            <div class="panel">
+                <h2>📝 Live Transcription</h2>
+                
+                <div class="transcription-controls">
+                    <button id="startTranscriptionBtn" class="btn" disabled>
+                        <span class="speech-indicator"></span>
+                        Start Transcription
+                    </button>
+                    <button id="stopTranscriptionBtn" class="btn btn-danger" style="display: none;">
+                        Stop Transcription
+                    </button>
+                </div>
+
+                <div class="transcription-container" id="transcriptionContainer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎤</div>
+                        <p>Transcriptions will appear here</p>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">
+                            Join a session and start transcription to see real-time speech-to-text
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Check server health
-        fetch('/api/health')
-            .then(res => res.json())
-            .then(data => {
-                const statusDiv = document.getElementById('status');
-                statusDiv.style.display = 'block';
-                
-                if (data.sdkConfigured) {
-                    statusDiv.className = 'status success';
-                    statusDiv.textContent = '✅ Server is running and SDK is configured!';
-                } else {
-                    statusDiv.className = 'status error';
-                    statusDiv.textContent = '⚠️ Server is running but SDK credentials are not configured. Please check your .env file.';
+        // Initialize application
+        let app = null;
+
+        // DOM Elements
+        const statusDiv = document.getElementById('status');
+        const sessionForm = document.getElementById('sessionForm');
+        const joinBtn = document.getElementById('joinBtn');
+        const leaveBtn = document.getElementById('leaveBtn');
+        const startTranscriptionBtn = document.getElementById('startTranscriptionBtn');
+        const stopTranscriptionBtn = document.getElementById('stopTranscriptionBtn');
+        const transcriptionContainer = document.getElementById('transcriptionContainer');
+        const sessionInfo = document.getElementById('sessionInfo');
+        const sessionNameEl = document.getElementById('displaySessionName');
+        const userNameEl = document.getElementById('displayUserName');
+        const userRoleEl = document.getElementById('displayUserRole');
+        const sessionStatusEl = document.getElementById('displaySessionStatus');
+
+        // Show status message
+        function showStatus(type, message) {
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+            setTimeout(() => {
+                if (type !== 'error') {
+                    statusDiv.style.display = 'none';
                 }
-            })
-            .catch(err => {
-                const statusDiv = document.getElementById('status');
-                statusDiv.style.display = 'block';
-                statusDiv.className = 'status error';
-                statusDiv.textContent = '❌ Unable to connect to server. Make sure the server is running.';
-            });
+            }, 5000);
+        }
+
+        // Initialize app when SDK loads
+        window.addEventListener('load', async () => {
+            try {
+                // Wait for SDK
+                await new Promise((resolve) => {
+                    const checkSDK = () => {
+                        if (window.WebVideoSDK || window.ZoomVideo) {
+                            resolve();
+                        } else {
+                            setTimeout(checkSDK, 100);
+                        }
+                    };
+                    checkSDK();
+                });
+
+                app = new ZoomVideoApp();
+                await app.initSDK();
+                
+                // Setup transcription callbacks after initialization
+                if (app.transcriptionManager) {
+                    app.transcriptionManager.onTranscript = (transcription) => {
+                        addTranscription(transcription, false);
+                    };
+                    app.transcriptionManager.onInterimTranscript = (transcript) => {
+                        updateInterimTranscript(transcript);
+                    };
+                }
+
+                showStatus('success', '✅ Application ready');
+            } catch (error) {
+                showStatus('error', `Failed to initialize: ${error.message}`);
+            }
+        });
+
+        // Handle form submission
+        sessionForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const sessionName = document.getElementById('sessionName').value.trim();
+            const userIdentity = document.getElementById('userIdentity').value.trim();
+            const sessionKey = document.getElementById('sessionKey').value.trim();
+            const role = document.getElementById('role').value;
+
+            try {
+                joinBtn.disabled = true;
+                showStatus('info', 'Generating token...');
+
+                // Generate token
+                const token = await app.generateToken(sessionName, role, sessionKey, userIdentity);
+                
+                showStatus('info', 'Joining session...');
+
+                // Join session
+                await app.joinSession(sessionName, token, userIdentity, role);
+
+                // Update UI
+                sessionNameEl.textContent = sessionName;
+                userNameEl.textContent = userIdentity;
+                userRoleEl.textContent = role === '1' ? 'Host' : 'Participant';
+                sessionStatusEl.textContent = 'Connected';
+                sessionInfo.style.display = 'block';
+                
+                joinBtn.style.display = 'none';
+                leaveBtn.style.display = 'block';
+                startTranscriptionBtn.disabled = false;
+
+                showStatus('success', '✅ Successfully joined session');
+            } catch (error) {
+                showStatus('error', `❌ Error: ${error.message}`);
+                joinBtn.disabled = false;
+            }
+        });
+
+        // Handle leave session
+        leaveBtn.addEventListener('click', async () => {
+            try {
+                await app.leaveSession();
+                
+                sessionInfo.style.display = 'none';
+                joinBtn.style.display = 'block';
+                leaveBtn.style.display = 'none';
+                startTranscriptionBtn.disabled = true;
+                startTranscriptionBtn.style.display = 'block';
+                stopTranscriptionBtn.style.display = 'none';
+                
+                transcriptionContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎤</div>
+                        <p>Transcriptions will appear here</p>
+                    </div>
+                `;
+
+                showStatus('info', 'Left session');
+            } catch (error) {
+                showStatus('error', `Error leaving session: ${error.message}`);
+            }
+        });
+
+        // Handle transcription start
+        startTranscriptionBtn.addEventListener('click', async () => {
+            try {
+                if (!app || !app.transcriptionManager) {
+                    showStatus('error', 'Application not initialized. Please join a session first.');
+                    return;
+                }
+                
+                const userName = userNameEl.textContent || 'User';
+                await app.transcriptionManager.start(userName);
+                
+                startTranscriptionBtn.style.display = 'none';
+                stopTranscriptionBtn.style.display = 'block';
+                document.querySelector('.speech-indicator').classList.add('active');
+                
+                showStatus('success', '🎤 Transcription started');
+            } catch (error) {
+                showStatus('error', `Failed to start transcription: ${error.message}`);
+            }
+        });
+
+        // Handle transcription stop
+        stopTranscriptionBtn.addEventListener('click', () => {
+            if (app && app.transcriptionManager) {
+                app.transcriptionManager.stop();
+            }
+            
+            startTranscriptionBtn.style.display = 'block';
+            stopTranscriptionBtn.style.display = 'none';
+            const indicator = document.querySelector('.speech-indicator');
+            if (indicator) {
+                indicator.classList.remove('active');
+            }
+            
+            showStatus('info', 'Transcription stopped');
+        });
+
+        // Add transcription to UI
+        function addTranscription(transcription, isInterim) {
+            // Remove empty state if exists
+            const emptyState = transcriptionContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            const item = document.createElement('div');
+            item.className = `transcription-item ${isInterim ? 'interim' : ''}`;
+            
+            const time = new Date(transcription.timestamp).toLocaleTimeString();
+            
+            item.innerHTML = `
+                <div class="transcription-header">
+                    <span class="transcription-user">${transcription.user}</span>
+                    <span class="transcription-time">${time}</span>
+                </div>
+                <div class="transcription-text">${transcription.text}</div>
+            `;
+
+            transcriptionContainer.appendChild(item);
+            transcriptionContainer.scrollTop = transcriptionContainer.scrollHeight;
+        }
+
+        // Update interim transcript
+        let interimItem = null;
+        function updateInterimTranscript(transcript) {
+            if (!transcript.trim()) return;
+
+            if (!interimItem) {
+                interimItem = document.createElement('div');
+                interimItem.className = 'transcription-item interim';
+                transcriptionContainer.appendChild(interimItem);
+            }
+
+            const time = new Date().toLocaleTimeString();
+            interimItem.innerHTML = `
+                <div class="transcription-header">
+                    <span class="transcription-user">${app.currentSession?.userName || 'You'}</span>
+                    <span class="transcription-time">${time} (interim)</span>
+                </div>
+                <div class="transcription-text">${transcript}</div>
+            `;
+
+            transcriptionContainer.scrollTop = transcriptionContainer.scrollHeight;
+        }
+
+        // Override app callbacks
+        if (window.ZoomVideoApp) {
+            ZoomVideoApp.prototype.onUserAdded = function(userName) {
+                showStatus('info', `👤 ${userName} joined the session`);
+            };
+
+            ZoomVideoApp.prototype.onUserRemoved = function(userName) {
+                showStatus('info', `👤 ${userName} left the session`);
+            };
+
+            ZoomVideoApp.prototype.onError = function(error) {
+                showStatus('error', `Session error: ${error.reason || error.message}`);
+            };
+
+            ZoomVideoApp.prototype.onSessionLeft = function() {
+                showStatus('info', 'Session ended');
+            };
+        }
     </script>
 </body>
 </html>
-
