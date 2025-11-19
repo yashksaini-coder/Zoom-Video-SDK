@@ -1,12 +1,23 @@
-# Zoom Video SDK Express Server
+# Zoom Video SDK - Session & Transcription Application
 
-A simple Express.js server for managing Zoom Video SDK sessions with HTML pages for creating and joining video conferences.
+A comprehensive web application for creating Zoom Video SDK sessions with real-time audio transcription and speech detection capabilities.
+
+## ✨ Features
+
+- **🎥 Video Sessions**: Create and join Zoom Video SDK sessions
+- **🎤 Real-time Transcription**: Live speech-to-text using Web Speech API
+- **🔍 Speech Detection**: Advanced speech pattern analysis (questions, commands, emotions)
+- **📝 Console Logging**: All transcriptions logged to browser console
+- **🎯 Audio Capture**: High-quality audio capture with noise suppression
+- **👥 Multi-user Support**: Track transcriptions from multiple participants
+- **💻 Modern UI**: Beautiful, responsive interface
 
 ## 📋 Prerequisites
 
 - Node.js (v14 or higher)
 - npm or yarn
 - Zoom Video SDK credentials (SDK Key and Secret)
+- Modern browser with Web Speech API support (Chrome, Edge, Safari)
 
 ## 🚀 Quick Start
 
@@ -58,53 +69,87 @@ npm run dev
 
 The server will start on `http://localhost:3000`
 
-### 5. Open in Browser
+### 5. Open the Application
 
-Navigate to `http://localhost:3000` to access the application.
+Navigate to `http://localhost:3000` in your browser.
 
-## 📁 Project Structure
+## 📖 Usage Guide
+
+### Creating a Session
+
+1. Fill in the session form:
+   - **Session Name**: A unique name for your session (letters, numbers, hyphens, underscores only)
+   - **Your Name**: Your display name
+   - **Session Key**: A secure key for the session (share this with participants)
+   - **Role**: Choose Host (can manage) or Participant (join only)
+
+2. Click **"Create & Join Session"**
+
+3. Allow camera and microphone permissions when prompted
+
+### Starting Transcription
+
+1. After joining a session, click **"Start Transcription"**
+
+2. Speak into your microphone - transcriptions will appear in real-time
+
+3. All transcriptions are also logged to the browser console:
+   ```
+   [TRANSCRIPTION] John Doe: Hello, this is a test
+   [SPEECH DETECTION] Detected: question {type: 'question', isQuestion: true, ...}
+   ```
+
+4. Click **"Stop Transcription"** to pause
+
+### Speech Detection Features
+
+The application automatically detects:
+- **Questions**: Detects question words (what, when, where, etc.) and question marks
+- **Commands**: Identifies action words (start, stop, show, hide, etc.)
+- **Emotions**: Detects positive/negative sentiment
+- **Keywords**: Extracts important words from speech
+
+### Leaving a Session
+
+Click **"Leave Session"** to disconnect from the video session and stop all transcription.
+
+## 🏗️ Project Structure
 
 ```
-.
+videosdk-exp/
 ├── server.js              # Express server with JWT token generation
 ├── package.json           # Dependencies and scripts
-├── .env.example          # Example environment variables
-├── .env                  # Your actual credentials (create this)
-├── README.md             # This file
-└── public/               # Static HTML files
-    ├── index.html        # Landing page with setup instructions
-    ├── setup-credentials.html  # Credentials setup and validation page
-    └── create-session.html  # Session creation/joining page
+├── .env                   # Environment variables (create from .env.example)
+├── public/
+│   ├── index.html        # Main application page with transcription UI
+│   ├── app.js            # Application logic (Zoom SDK, Transcription, Audio Capture)
+│   ├── create-session.html  # Legacy session creation page
+│   └── setup-credentials.html # Credentials setup page
+└── README.md              # This file
 ```
 
 ## 🔧 API Endpoints
 
 ### POST `/api/generate-token`
 
-Generates a JWT token for Zoom Video SDK authentication.
+Generate a JWT token for joining a Zoom Video SDK session.
 
 **Request Body:**
 ```json
 {
   "sessionName": "MySession",
-  "role": 0,
-  "sessionKey": "my-session-key",
+  "role": 1,
+  "sessionKey": "my-key",
   "userIdentity": "John Doe"
 }
 ```
-
-**Parameters:**
-- `sessionName` (string, required): Name of the session
-- `role` (number, required): `0` for host, `1` for participant
-- `sessionKey` (string, required): Session identifier key
-- `userIdentity` (string, required): User's display name
 
 **Response:**
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "sessionName": "MySession",
-  "role": 0,
+  "role": 1,
   "userIdentity": "John Doe",
   "expiresIn": 7200
 }
@@ -112,139 +157,109 @@ Generates a JWT token for Zoom Video SDK authentication.
 
 ### GET `/api/health`
 
-Health check endpoint to verify server status and SDK configuration.
+Check server status and SDK configuration.
 
 **Response:**
 ```json
 {
   "status": "ok",
   "timestamp": "2024-01-01T00:00:00.000Z",
-  "sdkConfigured": true
+  "sdkConfigured": true,
+  "keyLength": 45,
+  "secretLength": 50
 }
 ```
 
 ### POST `/api/validate-credentials`
 
-Validates Zoom Video SDK credentials by attempting to generate a test token.
-
-**Request Body:**
-```json
-{
-  "sdkKey": "your_sdk_key",
-  "sdkSecret": "your_sdk_secret"
-}
-```
-
-**Response:**
-```json
-{
-  "valid": true,
-  "message": "Credentials format is valid. Token generated successfully.",
-  "tokenLength": 500
-}
-```
+Validate SDK credentials format.
 
 ### POST `/api/validate-session-inputs`
 
-Validates session form inputs before joining a session.
+Validate session form inputs.
 
-**Request Body:**
-```json
-{
-  "sessionName": "MySession",
-  "userIdentity": "John Doe",
-  "sessionKey": "my-key",
-  "role": 1
+## 🎯 Transcription Features
+
+### Web Speech API
+
+The application uses the browser's built-in Web Speech API for real-time transcription:
+- **Continuous Recognition**: Captures speech continuously
+- **Interim Results**: Shows partial results as you speak
+- **Final Results**: Commits complete sentences
+- **Language Support**: Currently configured for English (en-US)
+
+### Speech Detection
+
+Advanced pattern analysis includes:
+- Question detection
+- Command recognition
+- Emotion analysis
+- Keyword extraction
+
+### Console Logging
+
+All transcriptions are logged to the browser console with:
+- User identification
+- Timestamp
+- Full transcript text
+- Speech detection analysis
+
+Example console output:
+```
+[TRANSCRIPTION] John Doe: What time is the meeting?
+[SPEECH DETECTION] Detected: question {
+  type: 'question',
+  isQuestion: true,
+  emotion: 'neutral',
+  keywords: ['time', 'meeting']
 }
 ```
 
-**Response:**
-```json
-{
-  "valid": true,
-  "message": "All inputs are valid"
-}
-```
+## 🔒 Security Notes
 
-## 🎥 Using the HTML Pages
-
-### Landing Page (`/`)
-
-The landing page provides:
-- Setup instructions
-- Link to get credentials
-- Server status check
-- Navigation to credentials setup and session creation
-
-### Setup Credentials Page (`/setup-credentials.html`)
-
-Features:
-- Input fields for SDK Key and Secret
-- Real-time format validation
-- Test credentials functionality
-- Visual indicators for valid/invalid inputs
-- Instructions for saving to `.env` file
-
-### Create Session Page (`/create-session.html`)
-
-Features:
-- Form to enter session details with **real-time validation**
-- Input format checking (session name, user identity, session key)
-- Server-side validation before joining
-- Real-time video session creation
-- Join as host or participant
-- Video/audio controls
-- Leave session functionality
-
-**How to use:**
-1. Enter a session name (e.g., "MyVideoSession")
-2. Enter your display name
-3. Enter a session key (can be any string)
-4. Choose your role (Host or Participant)
-5. Click "Join Session"
-6. Allow browser permissions for camera/microphone
-7. Your video session will start!
-
-## 🔐 Security Notes
-
-- **Never commit your `.env` file** to version control
-- Keep your SDK Secret secure
-- Tokens expire after 2 hours for security
+- Never commit your `.env` file to version control
+- Keep your SDK credentials secure
+- JWT tokens expire after 2 hours
 - Use HTTPS in production
 
-## 📚 Resources
+## 🌐 Browser Compatibility
 
-- [Zoom Video SDK Documentation](https://developers.zoom.us/docs/video-sdk/)
-- [Get Credentials Guide](https://developers.zoom.us/docs/video-sdk/get-credentials/)
-- [Zoom Video SDK Web Sample](https://github.com/zoom/videosdk-web-sample)
-- [Zoom Video SDK Auth Endpoint Sample](https://github.com/zoom/videosdk-auth-endpoint-sample)
+### Web Speech API Support
+- ✅ Chrome/Edge (Chromium): Full support
+- ✅ Safari: Full support
+- ⚠️ Firefox: Limited support (may require polyfill)
+
+### Zoom Video SDK
+- ✅ Chrome/Edge: Full support
+- ✅ Firefox: Full support
+- ✅ Safari: Full support
 
 ## 🐛 Troubleshooting
 
-### Server won't start
+### Transcription Not Working
 
-- Check that `.env` file exists and has valid credentials
-- Ensure port 3000 (or your configured port) is not in use
-- Verify Node.js version is v14 or higher
+1. **Check Browser Support**: Ensure you're using Chrome, Edge, or Safari
+2. **Microphone Permissions**: Allow microphone access when prompted
+3. **HTTPS Required**: Some browsers require HTTPS for Web Speech API
+4. **Check Console**: Look for errors in browser console
 
-### Token generation fails
+### Video Not Showing
 
-- Verify your SDK Key and Secret are correct in `.env`
-- Check that the credentials are from a Video SDK app (not Meeting SDK)
-- Ensure all required parameters are sent in the request
+1. **Camera Permissions**: Allow camera access
+2. **Check Console**: Look for SDK errors
+3. **Verify Credentials**: Ensure SDK Key and Secret are correct
 
-### Video session won't start
+### Session Join Failed
 
-- Allow browser permissions for camera and microphone
-- Check browser console for errors
-- Verify Zoom Video SDK scripts loaded correctly
-- Ensure you're using HTTPS in production (required for camera/mic access)
+1. **Check Credentials**: Verify SDK Key and Secret in `.env`
+2. **Check Network**: Ensure you can reach Zoom servers
+3. **Check Console**: Look for detailed error messages
 
-### "SDK credentials are not configured" error
+## 📚 Resources
 
-- Make sure `.env` file exists in the project root
-- Verify `ZOOM_VIDEO_SDK_KEY` and `ZOOM_VIDEO_SDK_SECRET` are set
-- Restart the server after updating `.env`
+- [Zoom Video SDK Documentation](https://developers.zoom.us/docs/video-sdk/web/)
+- [Web Speech API Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API)
+- [Get Zoom Video SDK Credentials](https://developers.zoom.us/docs/video-sdk/get-credentials/)
 
 ## 📝 License
 
@@ -252,5 +267,14 @@ MIT
 
 ## 🤝 Contributing
 
-Feel free to submit issues and enhancement requests!
+Contributions are welcome! Please feel free to submit a Pull Request.
 
+## 📧 Support
+
+For issues related to:
+- **Zoom Video SDK**: [Zoom Developer Forum](https://devforum.zoom.us/)
+- **This Application**: Open an issue on GitHub
+
+---
+
+**Built with ❤️ using Zoom Video SDK and Web Speech API**
