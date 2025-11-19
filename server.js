@@ -12,7 +12,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
-// Serve Zoom Video SDK from node_modules
 app.use('/zoom-sdk', express.static('node_modules/@zoom/videosdk/dist'));
 
 // Validate environment variables
@@ -20,6 +19,16 @@ if (!process.env.ZOOM_VIDEO_SDK_KEY || !process.env.ZOOM_VIDEO_SDK_SECRET) {
   console.error('ERROR: ZOOM_VIDEO_SDK_KEY and ZOOM_VIDEO_SDK_SECRET must be set in .env file');
   console.error('Please refer to: https://developers.zoom.us/docs/video-sdk/get-credentials/');
   process.exit(1);
+}
+
+// Warn if credentials seem too short
+const keyLength = process.env.ZOOM_VIDEO_SDK_KEY.length;
+const secretLength = process.env.ZOOM_VIDEO_SDK_SECRET.length;
+if (keyLength < 30 || secretLength < 30) {
+  console.warn(`\n⚠️  WARNING: SDK credentials seem short (Key: ${keyLength} chars, Secret: ${secretLength} chars)`);
+  console.warn('   Typical Zoom Video SDK credentials are 40+ characters long.');
+  console.warn('   Please verify you are using Video SDK credentials (not Meeting SDK).');
+  console.warn('   Get credentials at: https://developers.zoom.us/docs/video-sdk/get-credentials/\n');
 }
 
 /**
@@ -53,14 +62,26 @@ app.post('/api/generate-token', (req, res) => {
 
     const payload = {
       app_key: process.env.ZOOM_VIDEO_SDK_KEY,
-      tpc: sessionName, // Session topic/name
-      role_type: roleType, // 0 = host, 1 = participant
-      session_key: sessionKey, // Session key (can be any string)
-      user_identity: userIdentity, // User identifier
+      tpc: sessionName,
+      role_type: roleType,
+      session_key: sessionKey,
+      user_identity: userIdentity,
       version: 1,
       iat: iat,
       exp: exp
     };
+
+    // Log payload for debugging (without sensitive data)
+    console.log('JWT Payload:', {
+      app_key: process.env.ZOOM_VIDEO_SDK_KEY ? `${process.env.ZOOM_VIDEO_SDK_KEY.substring(0, 10)}...` : 'MISSING',
+      tpc: sessionName,
+      role_type: roleType,
+      session_key: sessionKey,
+      user_identity: userIdentity,
+      version: 1,
+      iat: iat,
+      exp: exp
+    });
 
     // Sign the token
     const token = jwt.sign(payload, process.env.ZOOM_VIDEO_SDK_SECRET, {
@@ -72,7 +93,7 @@ app.post('/api/generate-token', (req, res) => {
       sessionName: sessionName,
       role: roleType,
       userIdentity: userIdentity,
-      expiresIn: 7200 // 2 hours in seconds
+      expiresIn: 7200
     });
   } catch (error) {
     console.error('Error generating token:', error);
@@ -85,22 +106,26 @@ app.post('/api/generate-token', (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+  const keyLength = process.env.ZOOM_VIDEO_SDK_KEY ? process.env.ZOOM_VIDEO_SDK_KEY.length : 0;
+  const secretLength = process.env.ZOOM_VIDEO_SDK_SECRET ? process.env.ZOOM_VIDEO_SDK_SECRET.length : 0;
+  
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
-    sdkConfigured: !!(process.env.ZOOM_VIDEO_SDK_KEY && process.env.ZOOM_VIDEO_SDK_SECRET)
+    sdkConfigured: !!(process.env.ZOOM_VIDEO_SDK_KEY && process.env.ZOOM_VIDEO_SDK_SECRET),
+    keyLength: keyLength,
+    secretLength: secretLength,
+    credentialsWarning: (keyLength < 30 || secretLength < 30) ? 'Credentials seem short. Typical Video SDK keys are 40+ characters.' : null
   });
 });
 
 /**
  * Validate credentials by attempting to generate a test token
- * This helps verify that SDK Key and Secret are correct
  */
 app.post('/api/validate-credentials', (req, res) => {
   try {
     const { sdkKey, sdkSecret } = req.body;
 
-    // Validate input format
     if (!sdkKey || !sdkSecret) {
       return res.status(400).json({
         valid: false,
@@ -108,7 +133,6 @@ app.post('/api/validate-credentials', (req, res) => {
       });
     }
 
-    // Check format (Zoom SDK keys are typically alphanumeric, 20+ characters)
     if (sdkKey.length < 20 || sdkSecret.length < 20) {
       return res.status(400).json({
         valid: false,
@@ -116,7 +140,6 @@ app.post('/api/validate-credentials', (req, res) => {
       });
     }
 
-    // Try to generate a test token to validate credentials
     const testPayload = {
       app_key: sdkKey,
       tpc: 'test-session',
@@ -133,7 +156,6 @@ app.post('/api/validate-credentials', (req, res) => {
         algorithm: 'HS256'
       });
 
-      // If token generation succeeds, credentials format is valid
       res.json({
         valid: true,
         message: 'Credentials format is valid. Token generated successfully.',
@@ -164,7 +186,6 @@ app.post('/api/validate-session-inputs', (req, res) => {
     const { sessionName, userIdentity, sessionKey, role } = req.body;
     const errors = [];
 
-    // Validate session name
     if (!sessionName || sessionName.trim().length === 0) {
       errors.push('Session Name is required');
     } else if (sessionName.length > 200) {
@@ -173,24 +194,21 @@ app.post('/api/validate-session-inputs', (req, res) => {
       errors.push('Session Name can only contain letters, numbers, hyphens, and underscores');
     }
 
-    // Validate user identity
     if (!userIdentity || userIdentity.trim().length === 0) {
       errors.push('Your Name is required');
     } else if (userIdentity.length > 100) {
       errors.push('Your Name must be 100 characters or less');
     }
 
-    // Validate session key
     if (!sessionKey || sessionKey.trim().length === 0) {
       errors.push('Session Key is required');
     } else if (sessionKey.length > 200) {
       errors.push('Session Key must be 200 characters or less');
     }
 
-    // Validate role
     const roleNum = parseInt(role);
     if (isNaN(roleNum) || (roleNum !== 0 && roleNum !== 1)) {
-      errors.push('Role must be either Host (0) or Participant (1)');
+      errors.push('Role must be either Host (1) or Participant (0)');
     }
 
     if (errors.length > 0) {
@@ -219,4 +237,3 @@ app.listen(PORT, () => {
   console.log(`📝 Make sure you have set ZOOM_VIDEO_SDK_KEY and ZOOM_VIDEO_SDK_SECRET in your .env file`);
   console.log(`📚 Get credentials at: https://developers.zoom.us/docs/video-sdk/get-credentials/\n`);
 });
-
