@@ -137,6 +137,7 @@
             border-radius: 10px;
             background: #2d3748;
             object-fit: cover;
+            display: block;
         }
 
         .video-wrapper {
@@ -214,6 +215,27 @@
             margin-top: 5px;
             font-weight: 500;
         }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #718096;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
     </style>
 </head>
 <body>
@@ -234,61 +256,120 @@
             </div>
         </div>
 
+        <!-- Tabs for Create vs Join -->
         <div class="form-container" id="formContainer">
-            <form id="sessionForm">
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0;">
+                <button type="button" class="tab-btn active" id="createTab" onclick="switchTab('create')">
+                    ➕ Create Session
+                </button>
+                <button type="button" class="tab-btn" id="joinTab" onclick="switchTab('join')">
+                    🔗 Join Session
+                </button>
+            </div>
+
+            <!-- Create Session Form -->
+            <form id="createSessionForm" style="display: block;">
+                <h2 style="color: #2d3748; margin-bottom: 20px; font-size: 1.3rem;">Create a New Video Session</h2>
+                
                 <div class="form-group">
-                    <label for="sessionName">Session Name *</label>
+                    <label for="createSessionName">Session Name *</label>
                     <input 
                         type="text" 
-                        id="sessionName" 
-                        name="sessionName" 
-                        placeholder="e.g., MyVideoSession" 
+                        id="createSessionName" 
+                        name="createSessionName" 
+                        placeholder="e.g., TeamMeeting-2024" 
                         required
-                        value="TestSession"
                         pattern="[a-zA-Z0-9_\-]+"
                         maxlength="200"
                     >
-                    <p class="help-text" id="sessionNameHelp">A unique name for your video session (letters, numbers, hyphens, underscores only)</p>
+                    <p class="help-text" id="createSessionNameHelp">Choose a unique name for your session (letters, numbers, hyphens, underscores only)</p>
                 </div>
 
                 <div class="form-group">
-                    <label for="userIdentity">Your Name *</label>
+                    <label for="createUserIdentity">Your Name (Host) *</label>
                     <input 
                         type="text" 
-                        id="userIdentity" 
-                        name="userIdentity" 
+                        id="createUserIdentity" 
+                        name="createUserIdentity" 
                         placeholder="e.g., John Doe" 
                         required
-                        value="User"
                         maxlength="100"
                     >
-                    <p class="help-text" id="userIdentityHelp">Your display name in the session</p>
+                    <p class="help-text" id="createUserIdentityHelp">Your display name as the session host</p>
                 </div>
 
                 <div class="form-group">
-                    <label for="sessionKey">Session Key *</label>
+                    <label for="createSessionKey">Session Key *</label>
                     <input 
                         type="text" 
-                        id="sessionKey" 
-                        name="sessionKey" 
-                        placeholder="e.g., my-secret-key" 
+                        id="createSessionKey" 
+                        name="createSessionKey" 
+                        placeholder="e.g., secure-key-123" 
                         required
-                        value="test-key-123"
                         maxlength="200"
                     >
-                    <p class="help-text" id="sessionKeyHelp">A key to identify this session (use same key to join same session)</p>
+                    <p class="help-text" id="createSessionKeyHelp">Create a secure key for this session. Share this with participants to join.</p>
+                </div>
+
+                <div class="form-group" style="background: #f0f4ff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <p style="color: #4a5568; font-size: 0.9rem; margin: 0;">
+                        <strong>💡 Note:</strong> As the host, you'll be able to manage the session. 
+                        Share the Session Name and Session Key with others so they can join.
+                    </p>
+                </div>
+
+                <button type="submit" class="btn" id="createBtn" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
+                    ➕ Create & Join Session
+                </button>
+            </form>
+
+            <!-- Join Session Form -->
+            <form id="joinSessionForm" style="display: none;">
+                <h2 style="color: #2d3748; margin-bottom: 20px; font-size: 1.3rem;">Join an Existing Session</h2>
+                
+                <div class="form-group">
+                    <label for="joinSessionName">Session Name *</label>
+                    <input 
+                        type="text" 
+                        id="joinSessionName" 
+                        name="joinSessionName" 
+                        placeholder="e.g., TeamMeeting-2024" 
+                        required
+                        pattern="[a-zA-Z0-9_\-]+"
+                        maxlength="200"
+                    >
+                    <p class="help-text" id="joinSessionNameHelp">Enter the exact session name provided by the host</p>
                 </div>
 
                 <div class="form-group">
-                    <label for="role">Role *</label>
-                    <select id="role" name="role" required>
-                        <option value="0" selected>Participant (Join only)</option>
-                        <option value="1">Host (Can manage session)</option>
-                    </select>
-                    <p class="help-text">Host can manage the session, Participant can only join</p>
+                    <label for="joinUserIdentity">Your Name *</label>
+                    <input 
+                        type="text" 
+                        id="joinUserIdentity" 
+                        name="joinUserIdentity" 
+                        placeholder="e.g., Jane Smith" 
+                        required
+                        maxlength="100"
+                    >
+                    <p class="help-text" id="joinUserIdentityHelp">Your display name in the session</p>
                 </div>
 
-                <button type="submit" class="btn" id="joinBtn">Join Session</button>
+                <div class="form-group">
+                    <label for="joinSessionKey">Session Key *</label>
+                    <input 
+                        type="text" 
+                        id="joinSessionKey" 
+                        name="joinSessionKey" 
+                        placeholder="e.g., secure-key-123" 
+                        required
+                        maxlength="200"
+                    >
+                    <p class="help-text" id="joinSessionKeyHelp">Enter the session key provided by the host</p>
+                </div>
+
+                <button type="submit" class="btn" id="joinBtn">
+                    🔗 Join Session
+                </button>
             </form>
 
             <div id="status" class="status" style="display: none;"></div>
@@ -296,7 +377,7 @@
 
         <div class="video-container" id="videoContainer">
             <div class="video-wrapper">
-                <div id="video-canvas"></div>
+                <video id="video-canvas" autoplay playsinline></video>
             </div>
             <div class="controls">
                 <button class="btn btn-danger" id="leaveBtn">Leave Session</button>
@@ -368,41 +449,38 @@
             }
 
             try {
-                // Try multiple ways to access the VideoClient
+                // According to Zoom Video SDK docs: ZoomVideo.createClient()
+                // WebVideoSDK.default is the equivalent of ZoomVideo in UMD build
                 let VideoClient = null;
                 
-                // Method 1: WebVideoSDK.default.videoClient (if it exists)
-                if (WebVideoSDK?.default?.videoClient) {
-                    VideoClient = WebVideoSDK.default.videoClient;
-                }
-                // Method 2: WebVideoSDK.default itself might be the client factory
-                else if (WebVideoSDK?.default && typeof WebVideoSDK.default.createClient === 'function') {
+                // Method 1: WebVideoSDK.default has createClient directly (correct way)
+                if (WebVideoSDK?.default && typeof WebVideoSDK.default.createClient === 'function') {
                     VideoClient = WebVideoSDK.default;
                 }
-                // Method 3: WebVideoSDK.videoClient
-                else if (WebVideoSDK?.videoClient) {
-                    VideoClient = WebVideoSDK.videoClient;
-                }
-                // Method 4: ZoomVideo (aliased)
-                else if (ZoomVideo?.default?.videoClient) {
-                    VideoClient = ZoomVideo.default.videoClient;
-                }
-                else if (ZoomVideo?.videoClient) {
-                    VideoClient = ZoomVideo.videoClient;
-                }
+                // Method 2: ZoomVideo (aliased) has createClient
                 else if (ZoomVideo && typeof ZoomVideo.createClient === 'function') {
                     VideoClient = ZoomVideo;
+                }
+                // Method 3: Try WebVideoSDK.default.videoClient (fallback)
+                else if (WebVideoSDK?.default?.videoClient && typeof WebVideoSDK.default.videoClient.createClient === 'function') {
+                    VideoClient = WebVideoSDK.default.videoClient;
+                }
+                // Method 4: Try ZoomVideo.default
+                else if (ZoomVideo?.default && typeof ZoomVideo.default.createClient === 'function') {
+                    VideoClient = ZoomVideo.default;
                 }
                 
                 if (!VideoClient || typeof VideoClient.createClient !== 'function') {
                     console.error('Available SDK structure:', {
                         WebVideoSDK: typeof WebVideoSDK,
                         default: typeof WebVideoSDK?.default,
+                        defaultHasCreateClient: typeof WebVideoSDK?.default?.createClient,
                         defaultKeys: WebVideoSDK?.default ? Object.keys(WebVideoSDK.default).slice(0, 10) : []
                     });
-                    throw new Error('VideoClient.createClient not found in SDK');
+                    throw new Error('VideoClient.createClient not found in SDK. WebVideoSDK.default.createClient should be available.');
                 }
                 
+                // Create client using the correct method
                 const zmClient = VideoClient.createClient();
                 zmClient.init('en-US', 'Global', { patchJsMedia: true });
                 return zmClient;
@@ -490,11 +568,76 @@
                 // Get media stream
                 stream = client.getMediaStream();
                 
+                // Get video element reference
+                const videoElement = document.getElementById('video-canvas');
+                const currentUser = client.getCurrentUserInfo();
+                
+                // Function to safely render own video using attachVideo only
+                const renderOwnVideo = () => {
+                    if (!currentUser) {
+                        console.log('No current user info available');
+                        return;
+                    }
+                    
+                    try {
+                        // Use attachVideo method (required for video elements)
+                        stream.attachVideo(videoElement, currentUser.userId);
+                        console.log('Rendered own video using attachVideo');
+                    } catch (renderError) {
+                        // Handle specific error codes
+                        if (renderError.errorCode === 6001) {
+                            // "user is not send video" - video not ready yet, will retry
+                            console.log('Video not ready yet, will retry when active');
+                        } else if (renderError.errorCode === 6112) {
+                            // "Use the attachVideo method" - we're already using it, might be timing issue
+                            console.log('attachVideo timing issue, will retry');
+                        } else {
+                            console.warn('Error attaching video:', renderError);
+                        }
+                    }
+                };
+                
                 // Request camera and microphone permissions
                 try {
                     // Start video
                     await stream.startVideo();
                     console.log('Video started successfully');
+                    
+                    // Wait for video to be active before rendering
+                    // Listen for video active change event - wait for "Active" state
+                    let videoRendered = false;
+                    const videoActiveHandler = (payload) => {
+                        console.log('Video active change event:', payload);
+                        
+                        // Check if it's the current user and video is becoming active
+                        if (payload.userId === currentUser.userId) {
+                            if (payload.state === 'Active' || payload.action === 'Start') {
+                                if (!videoRendered) {
+                                    setTimeout(() => {
+                                        renderOwnVideo();
+                                        videoRendered = true;
+                                    }, 500);
+                                }
+                            }
+                        }
+                    };
+                    client.on('video-active-change', videoActiveHandler);
+                    
+                    // Also try after delays (fallback if event doesn't fire)
+                    setTimeout(() => {
+                        if (!videoRendered) {
+                            console.log('Fallback: Attempting to render video after delay');
+                            renderOwnVideo();
+                        }
+                    }, 1500);
+                    
+                    setTimeout(() => {
+                        if (!videoRendered) {
+                            console.log('Second fallback: Attempting to render video');
+                            renderOwnVideo();
+                        }
+                    }, 3000);
+                    
                 } catch (videoError) {
                     console.warn('Video start failed:', videoError);
                     showSessionStatus('⚠️ Video could not be started. Check camera permissions.');
@@ -509,19 +652,6 @@
                     showSessionStatus('⚠️ Audio could not be started. Check microphone permissions.');
                 }
                 
-                // Render video - improved rendering for multiple participants
-                const canvas = document.getElementById('video-canvas');
-                const currentUser = client.getCurrentUserInfo();
-                
-                if (currentUser) {
-                    try {
-                        stream.renderVideo(canvas, currentUser.userId, 1920, 1080, 0, 0, 3);
-                        console.log('Rendered own video');
-                    } catch (renderError) {
-                        console.error('Error rendering own video:', renderError);
-                    }
-                }
-                
                 // Listen for other participants joining
                 client.on('user-added', (payload) => {
                     console.log('User added:', payload);
@@ -532,9 +662,16 @@
                     // Render video when peer starts video
                     setTimeout(() => {
                         try {
-                            stream.renderVideo(canvas, user.userId, 1920, 1080, 0, 0, 3);
+                            // Use attachVideo for peer video as well
+                            stream.attachVideo(videoElement, user.userId);
                         } catch (err) {
                             console.warn('Could not render peer video:', err);
+                            // Fallback to renderVideo
+                            try {
+                                stream.renderVideo(videoElement, user.userId, 1920, 1080, 0, 0, 3);
+                            } catch (fallbackErr) {
+                                console.warn('renderVideo also failed:', fallbackErr);
+                            }
                         }
                     }, 500);
                 });
@@ -550,21 +687,53 @@
                 client.on('peer-video-state-change', (payload) => {
                     console.log('Peer video state changed:', payload);
                     if (payload.action === 'Start') {
-                        try {
-                            stream.renderVideo(
-                                canvas,
-                                payload.userId,
-                                1920,
-                                1080,
-                                0,
-                                0,
-                                3
-                            );
-                        } catch (err) {
-                            console.warn('Error rendering peer video:', err);
-                        }
+                        // Wait a bit for video stream to be ready
+                        setTimeout(() => {
+                            try {
+                                // Use attachVideo for peer video (required method)
+                                stream.attachVideo(videoElement, payload.userId);
+                                console.log(`Attached video for user: ${payload.userId}`);
+                            } catch (err) {
+                                // Handle specific error codes
+                                if (err.errorCode === 6001) {
+                                    console.log(`Video not ready yet for user ${payload.userId}, will retry`);
+                                } else if (err.errorCode === 6112) {
+                                    console.log(`Use attachVideo method for user ${payload.userId} - already using it`);
+                                } else {
+                                    console.warn('Error attaching peer video:', err);
+                                }
+                            }
+                        }, 500);
                     }
                 });
+
+                // Listen for video active change events (more reliable)
+                // Note: This handler is already set up above for own video, but we can use it for peers too
+                // The video-active-change event fires for all users
+                const peerVideoActiveHandler = (payload) => {
+                    // Skip if it's the current user (handled separately)
+                    if (payload.userId === currentUser.userId) {
+                        return;
+                    }
+                    
+                    console.log('Peer video active changed:', payload);
+                    if (payload.state === 'Active' || payload.action === 'Start') {
+                        setTimeout(() => {
+                            try {
+                                stream.attachVideo(videoElement, payload.userId);
+                                console.log(`Attached peer video on active change for user: ${payload.userId}`);
+                            } catch (err) {
+                                // Handle specific error codes
+                                if (err.errorCode === 6001 || err.errorCode === 6112) {
+                                    console.log(`Video not ready for peer ${payload.userId}`);
+                                } else {
+                                    console.warn('Could not attach peer video on active change:', err);
+                                }
+                            }
+                        }, 500);
+                    }
+                };
+                client.on('video-active-change', peerVideoActiveHandler);
 
                 // Listen for session errors
                 client.on('error', (error) => {
@@ -619,14 +788,36 @@
             }
         }
 
-        // Real-time validation
-        function validateSessionName(value) {
-            const help = document.getElementById('sessionNameHelp');
-            const input = document.getElementById('sessionName');
+
+        // Tab switching functionality
+        function switchTab(tab) {
+            const createForm = document.getElementById('createSessionForm');
+            const joinForm = document.getElementById('joinSessionForm');
+            const createTab = document.getElementById('createTab');
+            const joinTab = document.getElementById('joinTab');
+
+            if (tab === 'create') {
+                createForm.style.display = 'block';
+                joinForm.style.display = 'none';
+                createTab.classList.add('active');
+                joinTab.classList.remove('active');
+            } else {
+                createForm.style.display = 'none';
+                joinForm.style.display = 'block';
+                createTab.classList.remove('active');
+                joinTab.classList.add('active');
+            }
+            hideStatus();
+        }
+
+        // Validation functions for create form
+        function validateCreateSessionName(value) {
+            const help = document.getElementById('createSessionNameHelp');
+            const input = document.getElementById('createSessionName');
             
             if (!value || value.trim().length === 0) {
                 help.className = 'help-text';
-                help.textContent = 'A unique name for your video session (letters, numbers, hyphens, underscores only)';
+                help.textContent = 'Choose a unique name for your session (letters, numbers, hyphens, underscores only)';
                 input.style.borderColor = '';
                 return false;
             }
@@ -651,9 +842,89 @@
             return true;
         }
 
-        function validateUserIdentity(value) {
-            const help = document.getElementById('userIdentityHelp');
-            const input = document.getElementById('userIdentity');
+        function validateCreateUserIdentity(value) {
+            const help = document.getElementById('createUserIdentityHelp');
+            const input = document.getElementById('createUserIdentity');
+            
+            if (!value || value.trim().length === 0) {
+                help.className = 'help-text';
+                help.textContent = 'Your display name as the session host';
+                input.style.borderColor = '';
+                return false;
+            }
+            
+            if (value.length > 100) {
+                help.className = 'error-text';
+                help.textContent = '❌ Name must be 100 characters or less';
+                input.style.borderColor = '#f56565';
+                return false;
+            }
+            
+            help.className = 'success-text';
+            help.textContent = '✅ Name is valid';
+            input.style.borderColor = '#48bb78';
+            return true;
+        }
+
+        function validateCreateSessionKey(value) {
+            const help = document.getElementById('createSessionKeyHelp');
+            const input = document.getElementById('createSessionKey');
+            
+            if (!value || value.trim().length === 0) {
+                help.className = 'help-text';
+                help.textContent = 'Create a secure key for this session. Share this with participants to join.';
+                input.style.borderColor = '';
+                return false;
+            }
+            
+            if (value.length > 200) {
+                help.className = 'error-text';
+                help.textContent = '❌ Session key must be 200 characters or less';
+                input.style.borderColor = '#f56565';
+                return false;
+            }
+            
+            help.className = 'success-text';
+            help.textContent = '✅ Session key is valid';
+            input.style.borderColor = '#48bb78';
+            return true;
+        }
+
+        // Validation functions for join form (reuse existing)
+        function validateJoinSessionName(value) {
+            const help = document.getElementById('joinSessionNameHelp');
+            const input = document.getElementById('joinSessionName');
+            
+            if (!value || value.trim().length === 0) {
+                help.className = 'help-text';
+                help.textContent = 'Enter the exact session name provided by the host';
+                input.style.borderColor = '';
+                return false;
+            }
+            
+            if (!/^[a-zA-Z0-9_-]+$/.test(value.trim())) {
+                help.className = 'error-text';
+                help.textContent = '❌ Session name can only contain letters, numbers, hyphens, and underscores';
+                input.style.borderColor = '#f56565';
+                return false;
+            }
+            
+            if (value.length > 200) {
+                help.className = 'error-text';
+                help.textContent = '❌ Session name must be 200 characters or less';
+                input.style.borderColor = '#f56565';
+                return false;
+            }
+            
+            help.className = 'success-text';
+            help.textContent = '✅ Session name format is valid';
+            input.style.borderColor = '#48bb78';
+            return true;
+        }
+
+        function validateJoinUserIdentity(value) {
+            const help = document.getElementById('joinUserIdentityHelp');
+            const input = document.getElementById('joinUserIdentity');
             
             if (!value || value.trim().length === 0) {
                 help.className = 'help-text';
@@ -675,13 +946,13 @@
             return true;
         }
 
-        function validateSessionKey(value) {
-            const help = document.getElementById('sessionKeyHelp');
-            const input = document.getElementById('sessionKey');
+        function validateJoinSessionKey(value) {
+            const help = document.getElementById('joinSessionKeyHelp');
+            const input = document.getElementById('joinSessionKey');
             
             if (!value || value.trim().length === 0) {
                 help.className = 'help-text';
-                help.textContent = 'A key to identify this session (use same key to join same session)';
+                help.textContent = 'Enter the session key provided by the host';
                 input.style.borderColor = '';
                 return false;
             }
@@ -699,32 +970,109 @@
             return true;
         }
 
-        // Add real-time validation listeners
-        document.getElementById('sessionName').addEventListener('input', (e) => {
-            validateSessionName(e.target.value);
+        // Add real-time validation listeners for create form
+        document.getElementById('createSessionName').addEventListener('input', (e) => {
+            validateCreateSessionName(e.target.value);
         });
 
-        document.getElementById('userIdentity').addEventListener('input', (e) => {
-            validateUserIdentity(e.target.value);
+        document.getElementById('createUserIdentity').addEventListener('input', (e) => {
+            validateCreateUserIdentity(e.target.value);
         });
 
-        document.getElementById('sessionKey').addEventListener('input', (e) => {
-            validateSessionKey(e.target.value);
+        document.getElementById('createSessionKey').addEventListener('input', (e) => {
+            validateCreateSessionKey(e.target.value);
         });
 
-        // Form submission handler
-        document.getElementById('sessionForm').addEventListener('submit', async (e) => {
+        // Add real-time validation listeners for join form
+        document.getElementById('joinSessionName').addEventListener('input', (e) => {
+            validateJoinSessionName(e.target.value);
+        });
+
+        document.getElementById('joinUserIdentity').addEventListener('input', (e) => {
+            validateJoinUserIdentity(e.target.value);
+        });
+
+        document.getElementById('joinSessionKey').addEventListener('input', (e) => {
+            validateJoinSessionKey(e.target.value);
+        });
+
+        // Create Session Form Handler
+        document.getElementById('createSessionForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const sessionName = document.getElementById('sessionName').value.trim();
-            const userIdentity = document.getElementById('userIdentity').value.trim();
-            const sessionKey = document.getElementById('sessionKey').value.trim();
-            const role = document.getElementById('role').value;
+            const sessionName = document.getElementById('createSessionName').value.trim();
+            const userIdentity = document.getElementById('createUserIdentity').value.trim();
+            const sessionKey = document.getElementById('createSessionKey').value.trim();
+            const role = '1'; // Host role for creating sessions
 
             // Validate all fields
-            const nameValid = validateSessionName(sessionName);
-            const identityValid = validateUserIdentity(userIdentity);
-            const keyValid = validateSessionKey(sessionKey);
+            const nameValid = validateCreateSessionName(sessionName);
+            const identityValid = validateCreateUserIdentity(userIdentity);
+            const keyValid = validateCreateSessionKey(sessionKey);
+
+            if (!nameValid || !identityValid || !keyValid) {
+                showStatus('error', 'Please fix the validation errors above before creating the session');
+                return;
+            }
+
+            hideStatus();
+            document.getElementById('createBtn').disabled = true;
+            document.getElementById('createBtn').textContent = 'Creating Session...';
+
+            try {
+                // Wait for SDK to be loaded
+                showStatus('info', 'Loading Zoom Video SDK...');
+                await waitForSDK();
+
+                // Initialize client
+                client = initZoomClient();
+                if (!client) {
+                    throw new Error('Failed to initialize Zoom Video SDK client');
+                }
+
+                // Generate token
+                showStatus('info', 'Generating authentication token...');
+                const token = await generateToken(sessionName, role, sessionKey, userIdentity);
+
+                // Join session as host
+                showStatus('info', 'Creating and joining session as host...');
+                await joinSession(sessionName, token, userIdentity, role);
+
+                // Show success message with session details
+                showStatus('success', `✅ Session created successfully!\n\n📋 Session Details:\nSession Name: ${sessionName}\nSession Key: ${sessionKey}\n\nShare these details with participants to join.`);
+
+                // Show video container
+                document.getElementById('videoContainer').classList.add('active');
+                document.getElementById('formContainer').style.display = 'none';
+
+            } catch (error) {
+                console.error('Error:', error);
+                
+                let errorMessage = error.message || 'An unknown error occurred';
+                
+                if (errorMessage.includes('Authentication failed') || errorMessage.includes('account does not exist')) {
+                    errorMessage += '\n\n💡 Tip: Visit http://localhost:3000/setup-credentials.html to validate your credentials';
+                }
+                
+                showStatus('error', errorMessage);
+                document.getElementById('createBtn').disabled = false;
+                document.getElementById('createBtn').textContent = '➕ Create & Join Session';
+            }
+        });
+
+        // Join Session Form Handler
+        document.getElementById('joinSessionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const sessionName = document.getElementById('joinSessionName').value.trim();
+            const userIdentity = document.getElementById('joinUserIdentity').value.trim();
+            const sessionKey = document.getElementById('joinSessionKey').value.trim();
+            const role = '0'; // Participant role for joining sessions
+
+            // Validate all fields
+            const nameValid = validateJoinSessionName(sessionName);
+            const identityValid = validateJoinUserIdentity(userIdentity);
+            const keyValid = validateJoinSessionKey(sessionKey);
 
             if (!nameValid || !identityValid || !keyValid) {
                 showStatus('error', 'Please fix the validation errors above before joining');
@@ -796,7 +1144,7 @@
                 
                 showStatus('error', errorMessage);
                 document.getElementById('joinBtn').disabled = false;
-                document.getElementById('joinBtn').textContent = 'Join Session';
+                document.getElementById('joinBtn').textContent = '🔗 Join Session';
             }
         });
 
